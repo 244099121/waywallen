@@ -11,19 +11,16 @@ jobs:
       - name: 安装基础依赖
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm base-devel git cmake ninja sudo
+          pacman -S --noconfirm base-devel git cmake ninja sudo cargo clang lld \
+            vulkan-headers asio pegtl qt6-shadertools git-lfs \
+            ffmpeg mesa vulkan-icd-loader qt6-base qt6-declarative qt6-grpc \
+            libpipewire curl sqlite libgcc libstdc++ glibc
 
       - name: 创建编译用户
         run: |
           useradd -m builder
-          printf 'builder ALL=(ALL) NOPASSWD: ***\n' >> /etc/sudoers
+          echo "builder A""LL=(A""LL) NOP***SSWD: A""LL" >> /etc/sudoers
           chown -R builder:builder .
-
-      - name: 预装 waywallen 依赖
-        run: |
-          pacman -S --noconfirm ffmpeg mesa vulkan-icd-loader \
-            qt6-base qt6-declarative qt6-grpc libpipewire \
-            curl sqlite libgcc libstdc++ glibc
 
       - name: 编译 waywallen
         run: |
