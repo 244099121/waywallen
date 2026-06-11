@@ -8,47 +8,65 @@ jobs:
     runs-on: ubuntu-latest
     container: archlinux:latest
     steps:
-      - name: Install dependencies
+      - name: 安装基础依赖
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm base-devel git cmake ninja sudo
 
-      - name: Setup build user
+      - name: 创建编译用户
         run: |
           useradd -m builder
-          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+          echo "builder ALL=(ALL) NOPASSWD: ***" >> /etc/sudoers
           chown -R builder:builder .
 
-      - name: Build waywallen
+      - name: 编译 waywallen
         run: |
           su builder -c "
             cd /tmp
             git clone https://aur.archlinux.org/waywallen.git
             cd waywallen
-            # 用 makepkg -s 自动装依赖
             makepkg -s --noconfirm
           "
         timeout-minutes: 30
 
-      - name: Install waywallen
+      - name: 安装 waywallen
         run: |
           pacman -U --noconfirm /tmp/waywallen/waywallen-*.pkg.tar.zst
 
-      - name: Build open-wallpaper-engine
+      - name: 编译 waywallen-display
+        run: |
+          su builder -c "
+            cd /tmp
+            git clone https://aur.archlinux.org/waywallen-display.git
+            cd waywallen-display
+            makepkg -s --noconfirm
+          "
+        timeout-minutes: 15
+
+      - name: 安装 waywallen-display
+        run: |
+          pacman -U --noconfirm /tmp/waywallen-display/waywallen-display-*.pkg.tar.zst
+          pacman -U --noconfirm /tmp/waywallen-display/plasma-wallpaper-waywallen-*.pkg.tar.zst || true
+
+      - name: 安装 open-wallpaper-engine 编译依赖
+        run: |
+          pacman -S --noconfirm argparse eigen3 glad glfw nlohmann-json
+
+      - name: 编译 open-wallpaper-engine
         run: |
           su builder -c "
             cd /tmp
             git clone https://aur.archlinux.org/open-wallpaper-engine.git
             cd open-wallpaper-engine
-            # waywallen>=0.1.5 已满足
             makepkg -s --noconfirm
           "
         timeout-minutes: 30
 
-      - name: Upload packages
+      - name: 上传编译产物
         uses: actions/upload-artifact@v4
         with:
           name: arch-packages
           path: |
             /tmp/waywallen/waywallen-*.pkg.tar.zst
+            /tmp/waywallen-display/*.pkg.tar.zst
             /tmp/open-wallpaper-engine/open-wallpaper-engine-*.pkg.tar.zst
