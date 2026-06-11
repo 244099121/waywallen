@@ -16,8 +16,14 @@ jobs:
       - name: 创建编译用户
         run: |
           useradd -m builder
-          echo "builder ALL=(ALL) NOPASSWD: ***" >> /etc/sudoers
+          printf 'builder ALL=(ALL) NOPASSWD: ***\n' >> /etc/sudoers
           chown -R builder:builder .
+
+      - name: 预装 waywallen 依赖
+        run: |
+          pacman -S --noconfirm ffmpeg mesa vulkan-icd-loader \
+            qt6-base qt6-declarative qt6-grpc libpipewire \
+            curl sqlite libgcc libstdc++ glibc
 
       - name: 编译 waywallen
         run: |
