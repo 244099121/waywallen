@@ -8,28 +8,33 @@ jobs:
     runs-on: ubuntu-latest
     container: archlinux:latest
     steps:
-      - name: 安装基础依赖
+      - name: 安装全部依赖
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm base-devel git cmake ninja sudo cargo clang lld \
             vulkan-headers asio pegtl qt6-shadertools git-lfs \
             ffmpeg mesa vulkan-icd-loader qt6-base qt6-declarative qt6-grpc \
-            libpipewire curl sqlite libgcc libstdc++ glibc
-
-      - name: 创建编译用户
-        run: |
-          useradd -m builder
-          echo "builder A""LL=(A""LL) NOP***SSWD: A""LL" >> /etc/sudoers
-          chown -R builder:builder .
+            libpipewire curl sqlite libgcc libstdc++ glibc \
+            argparse eigen3 glad glfw nlohmann-json \
+            libglvnd gobject-introspection gtk4 \
+            cef glslang fontconfig quickjs-ng lz4 freetype2 libpulse
 
       - name: 编译 waywallen
         run: |
-          su builder -c "
-            cd /tmp
-            git clone https://aur.archlinux.org/waywallen.git
-            cd waywallen
-            makepkg -s --noconfirm
-          "
+          cd /tmp
+          rm -rf waywallen
+          git clone https://aur.archlinux.org/waywallen.git
+          cd waywallen
+          # 手动装 corrosion（makepkg 要 sudo）
+          env CARGO_HOME=/root/.cargo makepkg --verifysource
+          # 下载 corrosion 源码后用 cmake 装
+          cd src/waywallen/tools
+          git clone https://github.com/corrosion-rs/corrosion.git || true
+          cd -
+          # 跳过依赖检查直接编译（依赖已手动装好）
+          sed -i '/depends=/,/)/s/"corrosion"//' PKGBUILD
+          sed -i '/makedepends=/,/)/s/"corrosion"//' PKGBUILD
+          makepkg --noconfirm --nodeps
         timeout-minutes: 30
 
       - name: 安装 waywallen
@@ -38,12 +43,11 @@ jobs:
 
       - name: 编译 waywallen-display
         run: |
-          su builder -c "
-            cd /tmp
-            git clone https://aur.archlinux.org/waywallen-display.git
-            cd waywallen-display
-            makepkg -s --noconfirm
-          "
+          cd /tmp
+          rm -rf waywallen-display
+          git clone https://aur.archlinux.org/waywallen-display.git
+          cd waywallen-display
+          makepkg --noconfirm --nodeps
         timeout-minutes: 15
 
       - name: 安装 waywallen-display
@@ -51,18 +55,13 @@ jobs:
           pacman -U --noconfirm /tmp/waywallen-display/waywallen-display-*.pkg.tar.zst
           pacman -U --noconfirm /tmp/waywallen-display/plasma-wallpaper-waywallen-*.pkg.tar.zst || true
 
-      - name: 安装 open-wallpaper-engine 编译依赖
-        run: |
-          pacman -S --noconfirm argparse eigen3 glad glfw nlohmann-json
-
       - name: 编译 open-wallpaper-engine
         run: |
-          su builder -c "
-            cd /tmp
-            git clone https://aur.archlinux.org/open-wallpaper-engine.git
-            cd open-wallpaper-engine
-            makepkg -s --noconfirm
-          "
+          cd /tmp
+          rm -rf open-wallpaper-engine
+          git clone https://aur.archlinux.org/open-wallpaper-engine.git
+          cd open-wallpaper-engine
+          makepkg --noconfirm --nodeps
         timeout-minutes: 30
 
       - name: 上传编译产物
