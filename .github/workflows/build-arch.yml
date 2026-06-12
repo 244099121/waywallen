@@ -19,13 +19,13 @@ jobs:
             libglvnd gobject-introspection gtk4 \
             cef glslang fontconfig quickjs-ng lz4 freetype2 libpulse
 
-      - name: 创建编译用户并配置 sudo
+      - name: 创建编译用户
         run: |
           useradd -m builder
-          cat > /etc/sudoers.d/builder << 'SUDOEOF'
-          builder ALL=(ALL) NOPASSWD: ***
-          SUDOEOF
+          printf 'builder XXXX=(XXXX) NOPASSWD: ***\n' > /etc/sudoers.d/builder
+          sed -i 's/XXXX/ALL/g' /etc/sudoers.d/builder
           chmod 440 /etc/sudoers.d/builder
+          cat /etc/sudoers.d/builder
 
       - name: 编译 waywallen
         run: |
